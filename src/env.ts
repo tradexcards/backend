@@ -41,7 +41,7 @@ function bool(key: string, fallback: boolean): boolean {
     return raw === "true" || raw === "1";
 }
 
-// ── Network Configs (hardcoded for security) ────────────────────────────────
+// ── Network Configs ─────────────────────────────────────────────────────────
 
 interface NetworkConfig {
     network: "mainnet-beta" | "devnet";
@@ -50,24 +50,26 @@ interface NetworkConfig {
     rpcUrl: string;
 }
 
-const MAINNET_CONFIG: NetworkConfig = {
-    network: "mainnet-beta",
-    programId: "8hH5CWo14R5QhaFUuXpxJytchS6NgrhRLHASyVeriEvN",
-    usdcMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    rpcUrl: str("SOLANA_RPC_URL", ""),
-};
-
-const DEVNET_CONFIG: NetworkConfig = {
-    network: "devnet",
-    programId: "8hH5CWo14R5QhaFUuXpxJytchS6NgrhRLHASyVeriEvN",
-    usdcMint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
-    rpcUrl: "https://api.devnet.solana.com",
-};
-
 /** Get network config based on MAINNET env flag */
 function getNetworkConfig(): NetworkConfig {
     const isMainnet = bool("MAINNET", false);
-    return isMainnet ? MAINNET_CONFIG : DEVNET_CONFIG;
+    
+    if (isMainnet) {
+        return {
+            network: "mainnet-beta",
+            programId: strRequired("PROGRAM_ID"),
+            usdcMint: str("USDC_MINT", "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),
+            rpcUrl: strRequired("SOLANA_RPC_URL"),
+        };
+    }
+    
+    // Devnet: PROGRAM_ID is required (no default - deploy your own)
+    return {
+        network: "devnet",
+        programId: strRequired("PROGRAM_ID"),
+        usdcMint: str("USDC_MINT", "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+        rpcUrl: str("SOLANA_RPC_URL", "https://api.devnet.solana.com"),
+    };
 }
 
 // ── Paths ───────────────────────────────────────────────────────────────────
