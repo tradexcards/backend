@@ -1,0 +1,8 @@
+# Top 5 products to create on-chain feeds + markets for on boot.
+# Other products are created on-demand when users request activation.
+# Cost: ~0.003 SOL per product (feed rent + market rent).
+659232
+516998
+517044
+662183
+513721
