@@ -6,7 +6,8 @@
     "dev": "bun --env-file=../.env run --watch src/index.ts",
     "start": "bun --env-file=../.env run src/index.ts",
     "build": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
