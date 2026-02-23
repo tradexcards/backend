@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test & Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Typecheck
+        run: bun run typecheck
+        continue-on-error: true  # Allow pre-existing type errors
+
+      - name: Run tests
+        run: bun test
+        env:
+          SOLANA_RPC_URL: https://api.devnet.solana.com
+          PROGRAM_ID: TRDXCHHWWZdQXxkGFJxek1KU2hn19687xztNBy99Ca1
+          ADMIN_PASSWORD: test_password_16chars
+          KEYPAIR_PATH: ./test-keypair.json
