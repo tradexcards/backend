@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "TradeX Backend API - Elysia/Bun",
   "scripts": {
-    "dev": "bun --env-file=.env run --watch src/index.ts",
-    "start": "bun --env-file=.env run src/index.ts",
+    "dev": "bun --env-file=../.env run --watch src/index.ts",
+    "start": "bun --env-file=../.env run src/index.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
