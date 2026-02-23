@@ -313,6 +313,8 @@ export const wsRoutes = new Elysia({ prefix: "/ws" })
 
             // L-6: Per-IP connection limit
             const ip = (ws as any).remoteAddress || "unknown";
+            (ws as any)._ip = ip; // Store early for close() cleanup
+            
             const currentCount = ipConnectionCounts.get(ip) || 0;
             if (currentCount >= MAX_CLIENTS_PER_IP) {
                 logger.warn(`Per-IP limit reached for ${ip} (${MAX_CLIENTS_PER_IP}), rejecting`);
@@ -425,26 +427,38 @@ export const wsRoutes = new Elysia({ prefix: "/ws" })
             if ((ws as any)._rejected) return;
             
             const clientId = (ws as any).clientId;
+            const ip = (ws as any)._ip; // Stored early in open() for cleanup
+            
+            // Helper to decrement IP counter
+            const decrementIpCount = (ipAddr: string) => {
+                const count = ipConnectionCounts.get(ipAddr) || 0;
+                if (count <= 1) {
+                    ipConnectionCounts.delete(ipAddr);
+                } else {
+                    ipConnectionCounts.set(ipAddr, count - 1);
+                }
+            };
+            
             if (clientId) {
-                // L-6: Decrement per-IP counter
                 const client = clients.get(clientId);
                 if (client) {
-                    const ip = (client as any).ip;
-                    if (ip) {
-                        const count = ipConnectionCounts.get(ip) || 1;
-                        if (count <= 1) {
-                            ipConnectionCounts.delete(ip);
-                        } else {
-                            ipConnectionCounts.set(ip, count - 1);
-                        }
+                    const clientIp = (client as any).ip;
+                    if (clientIp) {
+                        decrementIpCount(clientIp);
                     }
+                    clients.delete(clientId);
+                    logger.info(`Client disconnected: ${clientId} (remaining: ${getClientCount()})`);
+                } else {
+                    // Client already removed (double close?) - still decrement IP if we have it
+                    if (ip) decrementIpCount(ip);
+                    logger.debug(`Client already removed: ${clientId}`);
                 }
-                clients.delete(clientId);
-                logger.info(`Client disconnected: ${clientId} (remaining: ${getClientCount()})`);
-            } else {
-                // Connection closed before open completed - nothing to clean up
-                logger.debug(`Client disconnected before registration (remaining: ${getClientCount()})`);
+            } else if (ip) {
+                // Connection closed before registration completed, but IP counter was incremented
+                decrementIpCount(ip);
+                logger.debug(`Client disconnected before registration (ip: ${ip})`);
             }
+            // If neither clientId nor ip, connection was rejected or never started - nothing to clean up
         },
     })
     

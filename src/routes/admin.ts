@@ -386,6 +386,104 @@ export const adminRoutes = new Elysia({ prefix: "/api/admin" })
         },
     })
 
+    // ── GET /user-stats ─────────────────────────────────────────────────────
+    .get("/user-stats", async () => {
+        // Scan ALL user accounts and positions on-chain to compute stats
+        try {
+            const { Connection, PublicKey: PK } = await import("@solana/web3.js");
+            const conn = new Connection(env().solana.rpcUrl, "confirmed");
+            const programId = new PK(env().program.programId);
+
+            // UserAccount discriminator: first 8 bytes of sha256("account:UserAccount")
+            // [0x81, 0x80, 0xeb, 0x13, 0x58, 0xc6, 0x25, 0x52] => base58: "FGbxCPK7x"
+            const USER_ACCOUNT_DISCRIMINATOR_BS58 = "FGbxCPK7x";
+            
+            // Position discriminator
+            const POSITION_DISCRIMINATOR_BS58 = "VZMoMoKSX7H";
+
+            // Fetch all user accounts
+            const [userAccounts, positions] = await Promise.all([
+                conn.getProgramAccounts(programId, {
+                    filters: [
+                        { memcmp: { offset: 0, bytes: USER_ACCOUNT_DISCRIMINATOR_BS58 } },
+                    ],
+                }),
+                conn.getProgramAccounts(programId, {
+                    filters: [
+                        { memcmp: { offset: 0, bytes: POSITION_DISCRIMINATOR_BS58 } },
+                    ],
+                }),
+            ]);
+
+            const totalAccounts = userAccounts.length;
+
+            // Parse positions to get activity timestamps
+            const POSITION_MIN_SIZE = 105;
+            const now = Date.now();
+            const ONE_DAY = 24 * 60 * 60 * 1000;
+            const ONE_WEEK = 7 * ONE_DAY;
+            const ONE_MONTH = 30 * ONE_DAY;
+
+            // Track unique owners by activity timeframe
+            const activeOwners1d = new Set<string>();
+            const activeOwners7d = new Set<string>();
+            const activeOwners30d = new Set<string>();
+            const allActiveOwners = new Set<string>();
+
+            for (const { account } of positions) {
+                const data = account.data.slice(8);
+                if (data.length < POSITION_MIN_SIZE) continue;
+
+                const owner = new PK(data.slice(0, 32)).toString();
+                // openedAt is unix timestamp in seconds at offset 89
+                const openedAt = Number(data.readBigInt64LE(89)) * 1000; // convert to ms
+                // lastUpdated is unix timestamp in seconds at offset 97
+                const lastUpdated = Number(data.readBigInt64LE(97)) * 1000; // convert to ms
+                
+                // Use the more recent of openedAt or lastUpdated
+                const lastActivity = Math.max(openedAt, lastUpdated);
+
+                allActiveOwners.add(owner);
+                
+                if (now - lastActivity <= ONE_DAY) {
+                    activeOwners1d.add(owner);
+                }
+                if (now - lastActivity <= ONE_WEEK) {
+                    activeOwners7d.add(owner);
+                }
+                if (now - lastActivity <= ONE_MONTH) {
+                    activeOwners30d.add(owner);
+                }
+            }
+
+            return {
+                totalAccounts,
+                totalWithPositions: allActiveOwners.size,
+                activeTraders: {
+                    last1d: activeOwners1d.size,
+                    last7d: activeOwners7d.size,
+                    last30d: activeOwners30d.size,
+                },
+                openPositions: positions.length,
+            };
+        } catch (e: any) {
+            L.error("Failed to compute user stats:", e);
+            return { 
+                totalAccounts: 0, 
+                totalWithPositions: 0,
+                activeTraders: { last1d: 0, last7d: 0, last30d: 0 },
+                openPositions: 0,
+                error: e.message 
+            };
+        }
+    }, {
+        detail: {
+            tags: ["Admin"],
+            summary: "User statistics",
+            description: "Aggregate user stats: total accounts, active traders by timeframe",
+        },
+    })
+
     // ── GET /exchange ───────────────────────────────────────────────────────
     .get("/exchange", async () => {
         const svc = perpdex();
