@@ -672,8 +672,8 @@ export class OracleKeeper {
         let existing = 0;
         let errors = 0;
 
-        const MAX_LEVERAGE = 50;
-        const MAX_OI = 1_000_000_000_000; // $1M in USDC units (6 decimals)
+        const MAX_LEVERAGE = 20;
+        const MAX_OI = 10_000_000_000; // $10k in USDC units (6 decimals)
 
         for (let idx = 0; idx < productIds.length; idx++) {
             const pid = productIds[idx];
