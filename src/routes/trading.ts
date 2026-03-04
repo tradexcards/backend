@@ -615,9 +615,9 @@ export const tradingRoutes = new Elysia({ prefix: "/api/trading" })
             set.status = 400;
             return { error: "Size must be between $1 and $100,000" };
         }
-        if (leverage < 1 || leverage > 50) {
+        if (leverage < 1 || leverage > 20) {
             set.status = 400;
-            return { error: "Leverage must be between 1 and 50" };
+            return { error: "Leverage must be between 1 and 20" };
         }
 
         const svc = perpdex();
@@ -970,9 +970,9 @@ export const tradingRoutes = new Elysia({ prefix: "/api/trading" })
             set.status = 400;
             return { error: "Invalid size (must be $1 — $10M)" };
         }
-        if (leverage < 1 || leverage > 50) {
+        if (leverage < 1 || leverage > 20) {
             set.status = 400;
-            return { error: "Invalid leverage (must be 1-50)" };
+            return { error: "Invalid leverage (must be 1-20)" };
         }
         if (!isValidSolanaPubkey(owner)) {
             set.status = 400;
