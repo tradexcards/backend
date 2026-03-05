@@ -948,6 +948,7 @@ export class PerpDexService {
         const ownerPubkey = new PublicKey(owner);
         const userAccountPDA = getUserAccountPDA(ownerPubkey);
         const positionPDA = getPositionPDA(ownerPubkey, productId);
+        const exchangePDA = getExchangePDA();
 
         return {
             programId: PROGRAM_ID().toString(),
@@ -955,6 +956,7 @@ export class PerpDexService {
             accounts: {
                 userAccount: userAccountPDA.toString(),
                 position: positionPDA.toString(),
+                exchangeState: exchangePDA.toString(),
                 owner: owner,
             },
             args: {
